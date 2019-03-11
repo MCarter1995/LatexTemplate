@@ -1,0 +1,46 @@
+\newpage
+\chapter{Implementing Wheel Encoders}
+\section{Initial Research}
+
+Being able to track the distance travelled by the wheels and monitor the velocities of said wheels is a fundamental part of this project. Without encoders, the system will heavily rely on other sensors to track the speed and position of the robot over time. There are two main types of rotary encoder, absolute and incremental. An absolute encoder measures the angle of the shaft, and this position information is maintained when power is removed from the system. The relationship between the encoder value and the physical position of the shaft is set during assembly, and the system does not need to be calibrated to uphold position accuracy. An incremental encoder, on the other hand, is used to measure the change in position of the shaft, and thus give the speed. It does not measure position.
+
+The encoder that was chosen was an AS5600 12-bit magnetic position sensor from \gls{ams}. This is a low-cost absolute encoder that can provide a much higher resolution than the previously described encoders, whilst being a fraction of the price. It also incorporates a very simple I\textsuperscript{2}C interface for programming and angle read-out. The AS5600 works in conjunction with a diametric magnetised on-axis magnet which is placed above the sensor. This can be seen in Figure \ref{fig:airgapfig}. The four hall-effect sensors in the IC encode the position of the magnetic field into a usable 12-bit digital value held across two registers.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{"img/Encoders/Raw Angle in Clockwise Direction".png} 
+    \caption{Raw Angle in Clockwise Direction \cite[fig.35]{as5600}}
+    \label{fig:rawanglefig}
+\end{figure}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.65\textwidth]{"img/Encoders/Magnetic Field Bz and Typical Airgap".png} 
+    \caption{Magnetic Field Bz with Typical Airgap \cite[fig.40]{as5600}}
+    \label{fig:airgapfig}
+\end{figure}
+
+The AS5600 was chosen due to its simplicity, size, price and ease of integration into the system. No modifications had to be made to the motor or motor shaft in order to incorporate this encoder, and this allowed for much more rapid development of the whole platform.
+Another student, Alfred Wilmot, was using these sensors in his own project, and had designed a small PCB for the AS5600 that included the required capacitors on the power rails. He also had many magnets available for use. This meant that the circuitry that allowed use of the AS5600 did not have to be designed by any member of the team, and enabled testing the encoders to begin much sooner.
+
+\section{Testing the AS5600}
+Interfacing the AS5600 was very simple as it uses an I\textsuperscript{2}C interface for programming and angle read-out. There are two other methods of angle read-out that can be enabled on the AS5600, and these are a \gls{pwm} output or enabling the on-chip 12-bit \gls{dac}. Due to the PCB design, these other two methods could not easily be utilised. Some simple I\textsuperscript{2}C tests were done to ensure that the angle of the magnet could be read out and displayed on a serial console, PuTTY. It was found that when a magnet was not near the sensor, the angle read-out would be very noisy and sporadic. The AS5600 contains a status register that gives information in regards to the magnet. The three bits in this register determine if a magnet has been detected, if it is too strong or if the magnet is too weak. This was used to control whether or not an angle read-out should occur.
+
+\section{Mounting the Encoders}
+In order to attach the encoders to the mobile platform, two mounts needed to be designed; one to hold the magnet in place, and another to hold the PCB containing the AS5600. 
+
+{\color{red}{\textit{SAM TO TALK ABOUT THE MOUNTS}}}
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.65\textwidth]{"img/Encoders/Encoder and Magnet Mount Models".png} 
+    \caption{Encoder and Magnet Mounts}
+    \label{fig:encodermagnetmountfig}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.65\textwidth]{"img/Encoders/Encoder and Magnet Mount Render".png} 
+    \caption{Encoder and Magnet Mounts on Platform}
+    \label{fig:encodermagnetmountrenderfig}
+\end{figure}
+

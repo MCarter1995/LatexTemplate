@@ -1,0 +1,244 @@
+\newpage
+\chapter{Odometry}
+
+Odometry is the method by which data is used from different motion sensors to estimate the change in position of an object over time. It is used in this project to estimate the position of the robot relative to its starting location. Using the wheel encoders, the velocity of the robot can be measured and thus the position can be estimated. This method is sensitive to errors due to the integration of velocity measurements over time to give position estimates.
+The navigation stack in\gls{ros}uses transform frames to determine the robot's location in the world and to relate sensor data to the map. Transform frames, however, do not provide an velocity information. Because of this, the navigation stack requires that any source of odometry publishes both a transform frame and an odometry message over \gls{ros} that contains the velocity information.
+
+\section{Differential Drive Kinematics and Dynamics Modelling}
+
+The first iteration of the mobile platform, the "alpha", is deemed a differential-drive robot, meaning the robot has two wheels that are independent of one another and can each have their own velocities. The robot can change its direction by varying the rate of rotation of its wheels and hence does not require any additional steering motion. To keep the robot balanced, an additional caster wheel is included at the rear.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.25\textwidth]{"img/Odometry/top_down_robot".png} 
+    \caption{Differential Drive Robot}
+    \label{fig:diffdriverobotfig}
+\end{figure}
+
+To characterise the current localisation of the robot in 2D space, the position and its orientation must be defined. The angular orientation, or direction, is defined by $\theta$, and the instant linear velocity of the robot is defined as $v$. The instant linear velocity ($v$) of the robot is a result of the two linear velocities of the left and right wheels, $v\textsubscript{L}$ and $v\textsubscript{R}$. These two velocities are parallel vectors and are perpendicular to the mechanical axis of the two wheels. As the wheel movement is restricted to a 2D plane, the robot shows a rolling motion in one direction and this makes it a nonholonomic robot. The wheel speed is a product of the wheel's radius and angular speed and is directly proportional to the angular velocity of the wheel: $v = r\omega$.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{"img/Odometry/diff_drive_motion".png} 
+    \caption{Differential Drive Motion}
+    \label{fig:diffdrivefig}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{"img/Odometry/circum_movement".png} 
+    \caption{Circumference Movement of Mobile Robot}
+    \label{fig:circummovefig}
+\end{figure}
+
+When the wheel is following a path, the velocity of the wheel at any given time has two components \cite{salem_2013}, with respect to the coordinate axes X and Y: 
+\begin{center}
+$v\textsubscript{robot} = v\textsubscript{x} \ sin(\theta) + v\textsubscript{y} \ cos(\theta)$    
+\end{center}
+If it is assumed that the robot follows a circular trajectory, as in Figure \ref{fig:circummovefig}, and $\triangle s$ is the arc distance travelled by the wheel and $R$ is the radius of the wheel, then the linear and angular velocities of the robot are given by:
+\begin{center}
+$v\textsubscript{robot} = \triangle s / \triangle t \Longleftrightarrow \omega\textsubscript{robot} = \triangle\theta / \triangle t$
+\end{center}
+The arc distance $\triangle s$ travelled in time $\triangle t$ is given by $\triangle s = R \triangle\theta$. If $\triangle t$ is very small, then it can be approximated that
+\begin{center}
+$\triangle x = R\triangle\theta \ sin(\theta)$
+
+$\triangle y = R\triangle\theta \ cos(\theta)$
+\end{center}
+Substituting the arc distance $\triangle s$ into these equations and then dividing both sides by $\triangle t$, they can be simplified to:
+\begin{equation}\label{changeinxyapprox}
+\begin{split}
+    \triangle x = \triangle s \sin(\theta) \Longrightarrow \frac{\triangle x}{\triangle t} = \frac{\triangle s \sin(\theta)}{\triangle t} \Longleftrightarrow v\textsubscript{x} = v\textsubscript{robot} \sin(\theta) \\
+    \triangle y = \triangle s \cos(\theta) \Longrightarrow \frac{\triangle y}{\triangle t} = \frac{\triangle s \cos(\theta)}{\triangle t} \Longleftrightarrow v\textsubscript{y} = v\textsubscript{robot} \cos(\theta)
+\end{split}
+\end{equation}
+
+The instantaneous centre of curvature (ICC) is a point that the robot must rotate around when following a constant velocity. The ICC lies on the common axis of the two driving wheels and, by changing the velocities $v\textsubscript{L}$ and $v\textsubscript{R}$, the ICC of rotation can be moved and different trajectories can be followed by the robot. At any given time, each wheel moves around the ICC with the same angular speed, given by:
+
+\begin{center}
+$\omega\textsubscript{robot} = \frac{d\theta}{dt} \Longleftrightarrow \omega R = v\textsubscript{robot}$
+\end{center}
+
+Referring to Figure \ref{fig:diffdrivefig}, the left and right wheel linear velocities in terms of mobile angular speed are given by:
+
+\begin{equation}\label{xyvelocities}
+    v\textsubscript{L} = \omega\textsubscript{robot} \Big(R + \frac{L}{2}\Big) \Longleftrightarrow v\textsubscript{R} = \omega\textsubscript{robot} \Big(R - \frac{L}{2}\Big)
+\end{equation}
+
+Where \textit{R} is the distance from the ICC point to the midpoint between the two wheels. This can be found by:
+
+\begin{equation}
+    R = \frac{v\textsubscript{R}+v\textsubscript{L}}{v\textsubscript{R}-v\textsubscript{L}}*\frac{L}{2}    
+\end{equation}
+
+As the vectors for the linear speed of wheels $v\textsubscript{L}$ and $v\textsubscript{R}$ are perpendicular to the axis of the driven wheels, an equation can be formed to represent the angular velocity of the robot:
+
+\begin{equation}\label{omegarobot}
+    \omega\textsubscript{robot} = \frac{v\textsubscript{R}-v\textsubscript{L}}{L} = \frac{(\omega\textsubscript{R}-\omega\textsubscript{L})r}{L}
+\end{equation}
+
+The linear velocity of the robot $v\textsubscript{robot}$ is a result of the two linear velocities of the left and right wheels. These velocities are parallel vectors and are perpendicular to the axis of the wheels. The overall linear velocity is given by:
+
+\begin{equation}\label{vrobot}
+    v\textsubscript{robot} = \frac{v\textsubscript{R} + v\textsubscript{L}}{2} = \frac{(\omega\textsubscript{R}+\omega\textsubscript{L})r}{2}
+\end{equation}
+
+The expressions for the actual position of the robot, based on Figure \ref{fig:diffdrivefig}, can be derived. Assume that the robot is rotating around the point ICC with an angular velocity $\omega(t)$. During an infinitely short time $dt$, the robot centre will travel from point $P(t)$ to $P(t+dt)$ with a linear velocity $V\textsubscript{robot}(t)$. For this infinitely short time, it can be assumed that the robot will move along a straight line tangent from point $P(t)$ to the real trajectory of the robot. Based on the two components of the velocity $V\textsubscript{robot}(t)$, the distance travelled in each direction can be calculated:
+
+\begin{equation}\label{dxdy1}
+\begin{split}
+    dx = v\textsubscript{x}(t) dt
+    \\
+    dy = v\textsubscript{y}(t) dt
+\end{split}
+\end{equation}
+
+Substituting $v\textsubscript{x}$ and $v\textsubscript{y}$ from Equation \ref{changeinxyapprox} gives:
+
+\begin{equation}\label{dxdy2}
+\begin{split}
+    dx = v\textsubscript{robot}sin(\theta(t))dt
+    \\
+    dy = v\textsubscript{robot}cos(\theta(t))dt
+\end{split}
+\end{equation}
+
+Similarly, the angular position can be found to be:
+
+\begin{equation}\label{dtheta1}
+    d\theta = \omega\textsubscript{robot}(t)dt
+\end{equation}
+
+Integrating Equations (\ref{dxdy2}, \ref{dtheta1}) gives:
+
+\begin{equation}
+\begin{gathered}
+    x(t) = \int v\textsubscript{robot}sin(\theta(t))dt + x\textsubscript{0}
+    \\
+    y(t) = \int v\textsubscript{robot}cos(\theta(t))dt + y\textsubscript{0}
+    \\
+    \theta(t) = \int \omega\textsubscript{robot}(t)dt + \theta\textsubscript{0}
+\end{gathered}
+\end{equation}
+
+Substituting Equations (\ref{omegarobot}, \ref{vrobot}) gives the final odometry equations:
+
+\begin{equation}\label{finalodomequations}
+\begin{gathered}
+    x(t) = \int \Big(\frac{v\textsubscript{R} + v\textsubscript{L}}{2}) sin(\theta(t))dt + x\textsubscript{0}
+    \\
+    y(t) = \int \Big(\frac{v\textsubscript{R} + v\textsubscript{L}}{2}) cos(\theta(t))dt + y\textsubscript{0}
+    \\
+    \theta(t) = \int \frac{v\textsubscript{R} - v\textsubscript{L}}{L}dt + \theta\textsubscript{0}
+\end{gathered}
+\end{equation}
+
+It is these Equations (\ref{finalodomequations}) that have been used to calculate the position of the robot in the odometry reference frame.
+
+
+\section{Odometry Microcontroller Code}
+
+The follow is an excerpt from the code running on the STM32F429ZI microcontroller - $main.cpp$. It shows how Equations (\ref{finalodomequations}) have been implemented to calculate the position of the robot relative to its starting location.
+
+\begin{minted}[fontsize=\footnotesize,breaklines]{cpp}
+if(encoderLeft.isMagnetPresent()){                      // If a magnet is present by left encoder
+    new_Pos_Left = encoderLeft.getAngleAbsolute();      // grab the current absolute position of it
+}   
+
+if(encoderRight.isMagnetPresent()){                     // If a magnet is present by right encoder
+    new_Pos_Right = encoderRight.getAngleAbsolute();    // grab the current absolute position of it
+}
+
+// Find change in encoder position for both wheels between each control loop
+delta_Left_Pos = new_Pos_Left - old_Pos_Left;
+delta_Right_Pos = (new_Pos_Right - old_Pos_Right) * -1;     // Keep sign of delta relative to rotation. I.e forwards is positive
+
+.
+.
+.
+
+/*****************
+COMPUTE VELOCITIES
+*****************/
+double dt = current_time.toSec() - last_time.toSec();   // Calculate change in time
+double v_left = (delta_Left_Pos * M_PER_STEP) / dt;     // Calculate speed of left wheel (m/s)
+double v_right = (delta_Right_Pos * M_PER_STEP) / dt;   // Calculate speed of right wheel (m/s)
+vx = (v_left + v_right) / 2;                            // Calculate overall linear speed as average of both wheels
+vth = (v_right - v_left) / WHEEL_BASE_LENGTH_M;         // Calculate angular velocity
+
+// Compute odometry in a typical way given the velocities of the robot
+double delta_x = (vx * cos(new_th)) * dt;
+double delta_y = (vx * sin(new_th)) * dt;
+double delta_th = vth * dt;
+
+new_x += delta_x;       // Increase estimated x-coordinate position with new change in x
+new_y += delta_y;       // Increase estimated y-coordinate position with new change in y
+new_th += delta_th;     // Increase estimated heading with new change in theta
+\end{minted}
+
+
+\section{Publishing Odometry}
+
+ROS requires that an odometry message is published in order for the system to know where the robot is relative to its starting position. This is known as its position in the $odom$ frame. ROS also requires that a transform is broadcast that shows the relation between the $base \ link$ of the robot and the $odom$ frame. These are very simple to set up on the microcontroller.
+
+\begin{minted}[fontsize=\footnotesize,breaklines]{cpp}
+.
+.
+.
+ros::Publisher              odom_pub("odom", &odom_msg);
+.
+.
+.
+tf::TransformBroadcaster    odom_broadcaster;
+.
+.
+.
+odom_broadcaster.init(nh);              // Initialise Transform Broadcaster "odom_broadcaster"
+nh.advertise(odom_pub);                 // Publish to ROS topic "odom" for odometry
+.
+.
+.
+/****************************
+SET TRANSFORM AND ODOM PARAMS
+****************************/
+// Since all odometry is 6DOF we'll need a quaternion created from yaw
+geometry_msgs::Quaternion odom_quat = tf::createQuaternionFromYaw(new_th);
+
+// First publish the transform over tf
+geometry_msgs::TransformStamped odom_trans;
+odom_trans.header.stamp = current_time;
+odom_trans.header.frame_id = "odom";
+odom_trans.child_frame_id = "base_link";
+
+odom_trans.transform.translation.x = new_x;
+odom_trans.transform.translation.y = new_y;
+odom_trans.transform.translation.z = 0.0;
+odom_trans.transform.rotation = odom_quat;
+
+// Send the transform
+odom_broadcaster.sendTransform(odom_trans);
+
+// Now set up the odometry message
+odom_msg.header.stamp = current_time;
+odom_msg.header.frame_id = "/odom";
+
+// Set the position
+odom_msg.pose.pose.position.x = new_x;
+odom_msg.pose.pose.position.y = new_y;
+odom_msg.pose.pose.position.z = 0.0;
+odom_msg.pose.pose.orientation = odom_quat;
+
+// Set the velocity
+odom_msg.child_frame_id = "/base_link";
+odom_msg.twist.twist.linear.x = vx;
+odom_msg.twist.twist.linear.y = 0.0;        // Will always be zero as assuming there will be no "slippage"
+odom_msg.twist.twist.angular.z = vth;
+
+// Publish the message over ROS
+odom_pub.publish(&odom_msg);     
+\end{minted}
+
+\section{Testing Odometry}
+
+All communications between the STM32 microcontroller and ROS occur serially over a USB port. To enable the communications and start the stream of data from the microcontroller, a serial node must be run with the specified USB port selected. This serial node is part of the basic ROS install so no additional packages needed to be installed. The serial node uses a Python script to open up the serial port and start streaming and deserialising the data.
+
+In order to test the odometry, the topic $odom$ was initially echoed in a terminal. The wheels were then spun manually by hand, and this showed that the $x,y \ and \ \omega$ values all changed.

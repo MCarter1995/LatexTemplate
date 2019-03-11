@@ -1,0 +1,98 @@
+\chapter{Control}
+
+For testing purposes, the sensor platform required the ability to manually control it. Previous experience with \gls{ros} showed that using a game console controller with a USB connection would be well suited to the application.
+
+The \gls{ros} package, Joy, contains a node that publishes the joystick input as a \gls{ros} message which contains the state of each of the controller's 11 buttons and 8 axes. The first iteration of the control scheme had the controller's analogue sticks mapped to the velocity of the wheels, and although it was difficult to use and move the platform in the desired direction, or even in a straight line, it was a suitable proof of concept.
+
+\section{Twist Messages}
+
+Preliminary research into Odometry showed that the platform would need to be controlled through Twist messages containing linear and angular velocities, so for manual control the Joy message would have to be converted to a Twist message.
+
+This conversion was done using a python script that subscribed to the Joy node. The script took the axis value for the right trigger to use as the x-axis linear velocity in the twist message, and used the horizontal axis value from the left analogue stick to as the z-axis angular velocity.
+
+\section{Velocity Control}
+
+The Twist messages provide global linear and angular velocities, but the platform requires individual wheel velocities, which can be calculated from the Twist message. 
+
+Equation (\ref{fwdkinematic}) shows how the global linear and angular velocities can be calculated from the wheel angular velocities. This can be rearranged to calculate the required wheel velocities.
+
+
+\begin{equation}\label{fwdkinematic}
+   \left[ {\begin{array}{cc}
+   v \\
+   \omega \\
+  \end{array} } \right] =
+  \left[ {\begin{array}{cc}
+   r/2 & r/2 \\
+   r/d & -r/d \\
+  \end{array} } \right]
+  \left[ {\begin{array}{cc}
+   \omega_r\\
+   \omega_l\\
+  \end{array} } \right]   
+\end{equation}
+
+$$\left[ {
+    \begin{array}{cc}
+        \omega_r\\
+        \omega_l\\
+    \end{array} } \right]  =
+    \left(\frac{1}{\left(\frac{-r}{d}\times\frac{r}{2}\right)-\left(\frac{r}{2}\times\frac{r}{d}\right)}
+    \times\left[ {
+        \begin{array}{cc}
+            -r/d & -r/2 \\
+            -r/d & r/2 \\
+        \end{array} }
+    \right]\right)
+\left[ {\begin{array}{cc}
+    v \\
+    \omega \\
+\end{array} } \right]
+$$
+
+$$
+\frac{1}{\left(\frac{-r}{d}\times\frac{r}{2}\right)-\left(\frac{r}{2}\times\frac{r}{d}\right)} = \frac{-d}{r^2}
+$$
+
+$$
+\left[ {\begin{array}{cc}
+    \omega_r\\
+    \omega_l\\
+\end{array} } \right] =
+\left[ {\begin{array}{cc}
+    \left(\frac{-d}{r^2} \times \frac{-r}{d}\right)& \left(\frac{-d}{r^2} \times \frac{-r}{2}\right) \\
+    \left(\frac{-d}{r^2} \times \frac{-r}{d}\right) & \left(\frac{-d}{r^2} \times \frac{r}{2}\right) \\
+\end{array} } \right]
+\left[ {\begin{array}{cc}
+    v\\
+    \omega\\
+\end{array} } \right]
+$$
+
+\begin{equation}\label{rvrsekinematic}
+    \left[ {\begin{array}{cc}
+        \omega_r\\
+        \omega_l\\
+    \end{array} } \right] =
+    \left[ {\begin{array}{cc}
+        1/r & d/2r\\
+        1/r & -d/2r\\
+    \end{array} } \right]
+    \left[ {\begin{array}{cc}
+        v\\
+        \omega\\
+    \end{array} } \right]     
+\end{equation}
+where $r$ is the wheel radius, $d$ is the distance between the centres of the wheels, $v$ is the forward linear velocity of the platform, $\omega$ is the angular velocity of the platform, $\omega_r$ is the angular velocity of the right wheel, and $\omega_l$ is the angular velocity of the right wheel.
+\newline
+\newline
+The wheel radius, distance between wheel centres, and overall linear and angular velocities are all shown below in Fig. \ref{fig:diffdrivefp}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{"img/DiffDrive".jpg} 
+    \caption{Basic Footprint of a Differential Drive Robot.}
+    \label{fig:diffdrivefp}
+\end{figure}
+
+The result, equation (\ref{rvrsekinematic}), will be programmed on the Nucleo control board to convert incoming control velocities into usable wheel velocities.

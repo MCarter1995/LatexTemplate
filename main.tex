@@ -1,0 +1,51 @@
+\documentclass[10pt, letterpaper]{report}
+\usepackage{titlesec}
+\titleformat{\chapter}
+  {\normalfont\LARGE\bfseries}{\thechapter}{1em}{}
+\titlespacing*{\chapter}{0pt}{0pt}{10pt}
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\chapter}{\if@openright\cleardoublepage\else\clearpage\fi}{}{}{}
+\usepackage{cite}
+\usepackage{geometry}
+\usepackage{longtable}
+\usepackage[nonumberlist,acronym]{glossaries}
+\usepackage{xcolor}
+\usepackage{amsmath}
+
+\usepackage[belowskip=-5pt,aboveskip=5pt]{caption}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+
+\usepackage{minted}
+\usemintedstyle{vs}
+
+\usepackage{graphicx}
+\usepackage{chngcntr}
+\counterwithout{figure}{chapter}
+\counterwithout{equation}{chapter}
+ 
+\input{./DocumentSections/Glossary.tex}
+
+\begin{document}
+\input{./DocumentSections/TitlePage.tex}		%MASON
+\newpage
+\input{./DocumentSections/Abstract.tex}		    %MASON
+%\newgeometry{top=1in, bottom=1.25in, left=1in, right=1in}
+\tableofcontents
+\newpage
+\printglossary[type=\acronymtype,title=List of Abbreviations]
+\printglossary[title=Nomenclature]
+\newpage
+\input{./DocumentSections/Introduction.tex}	    %MASON
+\input{./DocumentSections/ESCTesting}			%MASON
+\input{./DocumentSections/Control}		        %MASON
+\input{./DocumentSections/Encoders}			    %ELLIOTT
+\input{./DocumentSections/OdomPub}			    %ELLIOTT
+\input{./DocumentSections/InitialPID}			%ELLIOTT
+\input{./DocumentSections/PIDTuning}			%ELLIOTT	
+%\input{./DocumentSections/references.bib}
+\bibliographystyle{IEEEtran}
+\bibliography{./DocumentSections/references}
+\end{document}
+
+

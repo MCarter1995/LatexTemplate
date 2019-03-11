@@ -1,0 +1,13 @@
+\chapter{Testing the Electronic Speed Controllers}
+\section{Initial Tests}
+As the documentation on the chosen \gls{esc} was incredibly limited, initial testing was carried out to determine the operation of the controllers. A potentiometer was used for a variable control signal, the board's Enable pin was connected directly to the on-board 5V line, and the Direction pin was connected to ground.
+
+Through the testing, it was discovered that the speed control for one of the \gls{esc}s was directly proportional to the input control signal, while the other was inversely proportional, something which could be accounted for in the control software.
+
+The Pulse output from the \gls{esc} was viewed on an oscilloscope while the wheel was turned by hand, and showed 9 pulses per revolution. Encoders with such low resolution would be unsuitable for the Sensor Platform, so high-resolution external encoders would be required.
+
+\section{Microcontroller Tests}
+For these tests, the Enable and Direction pins were connected to digital I/O pins on a Nucleo-F429ZI microcontroller board, while the Speed Control pin was connected to an analog voltage output pin. 
+
+A simple program was written to vary the speeds of the motors, and with the quirks of the \gls{esc}s taken into account, the result was as expected in that the speed varied as the an. 
+
